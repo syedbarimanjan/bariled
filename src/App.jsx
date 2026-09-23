@@ -137,6 +137,30 @@ export default function App() {
     return lines;
   };
 
+  const handleWheelMapGrid = (e) =>{
+    console.log(e);
+    if(e.evt.shiftKey){
+      if(e.evt.deltaY>0){
+        setCellSize(cellSize-1);
+      }
+      else if(e.evt.deltaY<0){
+        setCellSize(cellSize+1);
+      }
+    }
+  }
+
+  const handleWheelTilemapGrid = (e) =>{
+    console.log(e);
+    if(e.evt.shiftKey){
+      if(e.evt.deltaY>0  && paletteZoom > 1){
+        setPaletteZoom(paletteZoom-1);
+      }
+      else if(e.evt.deltaY<0){
+        setPaletteZoom(paletteZoom+1);
+      }
+    }
+  }
+
   return (
     <div
       style={{
@@ -193,6 +217,7 @@ export default function App() {
               width={tilesetCols * TILE_SIZE * paletteZoom}
               height={tilesetRows * TILE_SIZE * paletteZoom}
               onClick={handlePaletteClick}
+              onWheel={handleWheelTilemapGrid}
             >
               <Layer>
                 <KonvaImage
@@ -307,6 +332,7 @@ export default function App() {
               onMouseDown={handleMapMouseDown}
               onMouseMove={handleMapMouseMove}
               onMouseUp={stopPainting}
+              onWheel={handleWheelMapGrid}
             >
               <Layer>
                 <Rect
