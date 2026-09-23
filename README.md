@@ -1,21 +1,16 @@
-# React + TypeScript + Vite + shadcn/ui
+# React + Vite
 
-This is a template for a new Vite project with React, TypeScript, and shadcn/ui.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Adding components
+Currently, two official plugins are available:
 
-To add components to your app, run the following command:
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-```bash
-npx shadcn@latest add button
-```
+## React Compiler
 
-This will place the ui components in the `src/components` directory.
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Using components
+## Expanding the ESLint configuration
 
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button"
-```
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
