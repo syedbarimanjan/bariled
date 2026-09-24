@@ -13,6 +13,33 @@ const MAP_ROWS = 16;
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
 
+function getLineCellsUsingBresenhamsAlgorithm(x0,y0,x1,y1) {
+  const cells = [];
+  const dx = Math.abs(x1-x0);
+  const dy = Math.abs(y1-y0);
+  const sx = (x0<x1) ? 1: -1;
+  const sy = (y0<y1) ? 1: -1;
+  let err = dx-dy;
+
+  let cx=x0;
+  let cy = y0;
+
+  while(true){
+    cells.push({col:cx,row:cy});
+    if(cx === x1 && cy === y1) break;
+    const e2 = 2 * err;
+    if(e2> -dy) {
+      err -= dy;
+      cx += sx;
+    }
+    if(e2<dx){
+      err+=dx;
+      cy+=sy;
+    }
+  }
+  return cells;
+}
+
 export default function App() {
   const [tilesetImg, setTilesetImg] = useState(null);
   const [tilesetCols, setTilesetCols] = useState(0);
@@ -20,7 +47,8 @@ export default function App() {
 
   const [cellHover,setCellHover] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
-  const [tool, setTool] = useState("draw");
+  const [tool, setTool] = useState("draw"); // "draw/erase/line"
+  const lineStartRef = useRef(null);
   
   const [mapData, setMapData] = useState(() => Array(MAP_COLS * MAP_ROWS).fill(null));
   const [mapStagePos, setMapStagePos] = useState({ x: 0, y: 0 });
@@ -136,18 +164,27 @@ export default function App() {
     const stage = e.target.getStage();
     const isMiddleClick = e.evt.button === 1;
     const isSpacePan = e.evt.button === 0 && spaceDownRef.current;
-
+    const isRightClick = e.evt.button === 2;
+    const currentTool = isRightClick ? "erase" : tool;
+    const pos = getRelativePointerPosition(stage);
+    
     if(isMiddleClick || isSpacePan) {
       isPanningMapRef.current = true;
       lastPointerMapRef.current = stage.getPointerPosition();
       return;
     }
+    
+    if(currentTool === "line") {
+      const col = Math.floor(pos.x/TILE_SIZE);
+      const row = Math.floor(pos.y/TILE_SIZE);
+      lineStartRef.current = {col,row};
+      paintingRef.current = true;
+      return;
+    }
 
-    const isRightClick = e.evt.button === 2;
-    const currentTool = isRightClick ? "erase" : tool;
     paintToolRef.current = currentTool;
     paintingRef.current = true;
-    paintCellAt(getRelativePointerPosition(stage), currentTool);
+    paintCellAt(pos, currentTool);
   };
 
   const handleMapMouseMove = (e) => {
@@ -170,6 +207,8 @@ export default function App() {
       const col = Math.floor(pos.x/TILE_SIZE);
       const row = Math.floor(pos.y/TILE_SIZE);
       if(col>=0&&row>=0&&col<MAP_COLS && row< MAP_ROWS){
+        // lineStartRef.current.col = col;
+        // lineStartRef.current.row = row;
         setCellHover({col,row});
       }else {
         setCellHover(null);
@@ -177,7 +216,10 @@ export default function App() {
     }
 
     if (!paintingRef.current) return;
-    paintCellAt(getRelativePointerPosition(stage), paintToolRef.current);
+
+    if(tool === "draw" || paintToolRef.current === "erase") {
+      paintCellAt(pos, paintToolRef.current);
+    }
   };
 
   const handlePaletteMouseDown = (e) => {
@@ -208,6 +250,55 @@ export default function App() {
   }
 
   const stopInteraction = () => {
+    console.log(tool)
+    if(lineStartRef.current && cellHover && selectedTile && tool === "line") {
+      const lineCells = getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row);
+      setMapData((prev) =>{
+        const next = prev.slice();
+        let changed = false;
+        lineCells.forEach(({col,row}) => {
+          if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
+            const index = row * MAP_COLS + col;
+            next[index] = {col: selectedTile.col,row: selectedTile.row};
+            changed = true;
+          }
+        })
+        return changed ? next : prev;
+      })
+      // setMapData((prev) => {
+      //   if(tool === "line") {
+      //     const next = prev.slice();
+      //     let changed = false;
+      //     lineCells.forEach(({col,row}) => {
+      //       const index = row * MAP_COLS + col;
+      //       // if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
+      //         next[index] = {col: selectedTile.col,row: selectedTile.row};
+      //         changed = true;
+      //       // }
+      //     })
+      //     return changed ? next : prev;
+      //   }
+      //   if (currentTool === "erase") {
+      //     if (prev[index] === null) return prev;
+      //     const next = prev.slice();
+      //     next[index] = null;
+      //     return next;
+      //   }
+      //   if (!selectedTile) return prev;
+      //   const existing = prev[index];
+      //   if (
+      //     existing &&
+      //     existing.col === selectedTile.col &&
+      //     existing.row === selectedTile.row
+      //   ) {
+      //     return prev;
+      //   }
+      //   const next = prev.slice();
+      //   next[index] = { col: selectedTile.col, row: selectedTile.row };
+      //   return next;
+      // });
+    }
+    lineStartRef.current = null;
     paintingRef.current = false;
     isPanningMapRef.current = false;
     isPanningPaletteRef.current = false;
@@ -216,7 +307,7 @@ export default function App() {
   useEffect(() => {
     window.addEventListener("mouseup", stopInteraction);
     return () => window.removeEventListener("mouseup", stopInteraction);
-  }, []);
+  }, [stopInteraction]);
 
   const clearMap = () => setMapData(Array(MAP_COLS * MAP_ROWS).fill(null));
 
@@ -448,6 +539,19 @@ export default function App() {
           >
             Erase
           </button>
+          <button
+            onClick={() => setTool("line")}
+            style={{
+              padding: "6px 10px",
+              background: tool === "line" ? "#ffcc00" : "#333",
+              color: tool === "line" ? "#111" : "#eee",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Line
+          </button>
         </div>
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 6 }}>
           right-click on the grid to erase without switching tools.
@@ -561,6 +665,28 @@ export default function App() {
                         opacity={0.5}
                         listening={false}
                       />
+                  )
+                }
+                {
+                  tilesetImg && selectedTile && lineStartRef.current && cellHover && tool === "line" && (
+                    getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
+                      <KonvaImage
+                        key={index}
+                        image={tilesetImg}
+                        crop={{
+                          x: selectedTile.col * TILE_SIZE,
+                          y: selectedTile.row * TILE_SIZE,
+                          width: TILE_SIZE,
+                          height: TILE_SIZE,
+                        }}
+                        x={cell.col * TILE_SIZE}
+                        y={cell.row * TILE_SIZE}
+                        width={TILE_SIZE}
+                        height={TILE_SIZE}
+                        opacity={0.5}
+                        listening={false}
+                      />
+                    ))
                   )
                 }
                 {gridLines(MAP_COLS, MAP_ROWS, TILE_SIZE)}
