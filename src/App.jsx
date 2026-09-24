@@ -18,14 +18,11 @@ export default function App() {
   const [tilesetCols, setTilesetCols] = useState(0);
   const [tilesetRows, setTilesetRows] = useState(0);
 
+  const [cellHover,setCellHover] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
   const [tool, setTool] = useState("draw");
-
-  // const [cellSize, setCellSize] = useState(32);
-  // const [paletteZoom, setPaletteZoom] = useState(2);
   
   const [mapData, setMapData] = useState(() => Array(MAP_COLS * MAP_ROWS).fill(null));
-
   const [mapStagePos, setMapStagePos] = useState({ x: 0, y: 0 });
   const [mapStageScale, setMapStageScale] = useState(1);
   const [paletteStagePos, setPaletteStagePos] = useState({ x: 0, y: 0 });
@@ -168,6 +165,17 @@ export default function App() {
       return;
     }
 
+    const pos = getRelativePointerPosition(stage);
+    if(pos){
+      const col = Math.floor(pos.x/TILE_SIZE);
+      const row = Math.floor(pos.y/TILE_SIZE);
+      if(col>=0&&row>=0&&col<MAP_COLS && row< MAP_ROWS){
+        setCellHover({col,row});
+      }else {
+        setCellHover(null);
+      }
+    }
+
     if (!paintingRef.current) return;
     paintCellAt(getRelativePointerPosition(stage), paintToolRef.current);
   };
@@ -198,10 +206,6 @@ export default function App() {
     }
     lastPointerPaletteRef.current = pointer;
   }
-
-  // const stopPainting = () => {
-  //   paintingRef.current = false;
-  // };
 
   const stopInteraction = () => {
     paintingRef.current = false;
@@ -238,6 +242,10 @@ export default function App() {
     setPaletteStageScale(1);
   };
 
+  const handleMapMouseLeave = () => {
+    setCellHover(null);
+  }
+
   const gridLines = (cols, rows, size) => {
     const lines = [];
     for (let i = 0; i <= cols; i++) {
@@ -264,39 +272,6 @@ export default function App() {
     }
     return lines;
   };
-
-  // const handleWheelMapGrid = (e) =>{
-  //   console.log(e);
-  //   if(e.evt.shiftKey){
-  //     if(e.evt.deltaY>0){
-  //       setCellSize(cellSize-1);
-  //     }
-  //     else if(e.evt.deltaY<0){
-  //       setCellSize(cellSize+1);
-  //     }
-  //   }
-  // }
-
-  // const handleWheelTilemapGrid = (e) =>{
-  //   console.log(e);
-  //   if(e.evt.shiftKey){
-  //     if(e.evt.deltaY>0  && paletteZoom > 1){
-  //       setPaletteZoom(paletteZoom-1);
-  //     }
-  //     else if(e.evt.deltaY<0){
-  //       setPaletteZoom(paletteZoom+1);
-  //     }
-  //   }
-  // }
-
-  // const handleScrollWheelClick = (e) => {
-  //   console.log(e);
-  //   if(e.evt.button === 1){
-  //     e.target.getStage()
-  //     console.log(e.evt.clientX)
-  //     console.log(e.evt.clientY)
-  //   }
-  // }
 
   const handleWheelZoom = (e,scale,setScale,pos,setPos) => {
     const isZoomModifier = e.evt.ctrlKey || e.evt.metaKey;
@@ -347,18 +322,52 @@ export default function App() {
           </div>
         )}
 
+        {/* {
+          tilesetImg && selectedTile && cellHover && tool === "draw" && (
+            <Layer>
+              <KonvaImage
+                // key={"i"}
+                Image={tilesetImg}
+                crop={{
+                  x: selectedTile.col * TILE_SIZE,
+                  y: selectedTile.row * TILE_SIZE,
+                  width: TILE_SIZE,
+                  height: TILE_SIZE,
+                }}
+                x={cellHover.col * TILE_SIZE}
+                y={cellHover.row * TILE_SIZE}
+                width={TILE_SIZE}
+                height={TILE_SIZE}
+                opacity={0.5}
+                listening={false}
+              />
+            </Layer>
+            // mapData.map((tile, i) => {
+            //       if (!tile) return null;
+            //       const col = i % MAP_COLS;
+            //       const row = Math.floor(i / MAP_COLS);
+            //       return (
+            //         <KonvaImage
+            //           key={i}
+            //           image={tilesetImg}
+            //           crop={{
+            //             x: tile.col * TILE_SIZE,
+            //             y: tile.row * TILE_SIZE,
+            //             width: TILE_SIZE,
+            //             height: TILE_SIZE,
+            //           }}
+            //           x={cellHover.col * TILE_SIZE}
+            //           y={cellHover.row * TILE_SIZE}
+            //           width={TILE_SIZE}
+            //           height={TILE_SIZE}
+            //           listening={false}
+            //         />
+            //       );
+            // })
+          )
+        } */}
+
         <div style={{ marginTop: 10 }}>
-          {/* <label style={{ fontSize: 12 }}>
-            Palette zoom: {paletteZoom}x{" "}
-            <input
-              type="range"
-              min="1"
-              max="4"
-              step="1"
-              value={paletteZoom}
-              onChange={(e) => setPaletteZoom(Number(e.target.value))}
-            />
-          </label> */}
           <span style={{ fontSize: 11, opacity: 0.7 }}>
               {Math.round(paletteStageScale * 100)}%
           </span>
@@ -384,7 +393,6 @@ export default function App() {
               scaleX={paletteStageScale}
               scaleY={paletteStageScale}
               onClick={handlePaletteClick}
-              // onWheel={handleWheelTilemapGrid}
               onWheel={(e) => handleWheelZoom(e,paletteStageScale,setPaletteStageScale,paletteStagePos,setPaletteStagePos)}
               onMouseDown={handlePaletteMouseDown}
               onMouseMove={handlePaletteMouseMove}
@@ -446,17 +454,6 @@ export default function App() {
         </div>
 
         <div style={{ marginTop: 14 }}>
-          {/* <label style={{ fontSize: 12 }}>
-            Map zoom: {cellSize}px{" "}
-            <input
-              type="range"
-              min="16"
-              max="64"
-              step="1"
-              value={cellSize}
-              onChange={(e) => setCellSize(Number(e.target.value))}
-            />
-          </label> */}
           <span style={{ fontSize: 11, opacity: 0.7 }}>
             {Math.round(mapStageScale * 100)}%
           </span>
@@ -502,6 +499,7 @@ export default function App() {
           <div
             style={{ display: "inline-block", border: "1px solid #444",width: MAP_VIEW_WIDTH,height: MAP_VIEW_HEIGHT,overflow: "hidden",cursor: spaceDown ? "grab" : tool === "erase" ? "cell" : "crosshair", }}
             onContextMenu={(e) => e.preventDefault()}
+            onMouseLeave={handleMapMouseLeave}
           >
             <Stage
               width={MAP_VIEW_WIDTH}
@@ -512,9 +510,6 @@ export default function App() {
               scaleY={mapStageScale}
               onMouseDown={handleMapMouseDown}
               onMouseMove={handleMapMouseMove}
-              // onMouseUp={stopPainting}
-              // onWheel={handleWheelMapGrid}
-              // onClick={handleScrollWheelClick}
               onWheel={(e) => handleWheelZoom(e,mapStageScale,setMapStageScale,mapStagePos,setMapStagePos)}
             >
               <Layer>
@@ -548,6 +543,26 @@ export default function App() {
                     />
                   );
                 })}
+                {
+                  tilesetImg && selectedTile && cellHover && tool === "draw" && (
+                      <KonvaImage
+                        // key={"i"}
+                        image={tilesetImg}
+                        crop={{
+                          x: selectedTile.col * TILE_SIZE,
+                          y: selectedTile.row * TILE_SIZE,
+                          width: TILE_SIZE,
+                          height: TILE_SIZE,
+                        }}
+                        x={cellHover.col * TILE_SIZE}
+                        y={cellHover.row * TILE_SIZE}
+                        width={TILE_SIZE}
+                        height={TILE_SIZE}
+                        opacity={0.5}
+                        listening={false}
+                      />
+                  )
+                }
                 {gridLines(MAP_COLS, MAP_ROWS, TILE_SIZE)}
               </Layer>
             </Stage>
