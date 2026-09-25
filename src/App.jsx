@@ -383,218 +383,9 @@ export default function App() {
     setScale(newScale);
     setPos({x:pointer.x - worldPoint.x * newScale,y:pointer.y - worldPoint.y * newScale});
   }
-
+  const fileInputRef = useRef(null);
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        fontFamily: "sans-serif",
-        background: "#1e1e2a",
-        color: "#eee",
-      }}
-    >
-      <div
-        style={{
-          width: 300,
-          padding: 12,
-          borderRight: "1px solid #333",
-          overflowY: "auto",
-          flexShrink: 0,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Tileset</h3>
-        <input type="file" accept="image/*" onChange={handleUpload} />
-
-        {tilesetImg && (
-          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
-            {tilesetCols} x {tilesetRows} tiles ({tilesetImg.width}x
-            {tilesetImg.height}px)
-          </div>
-        )}
-
-        {/* {
-          tilesetImg && selectedTile && cellHover && tool === "draw" && (
-            <Layer>
-              <KonvaImage
-                // key={"i"}
-                Image={tilesetImg}
-                crop={{
-                  x: selectedTile.col * TILE_SIZE,
-                  y: selectedTile.row * TILE_SIZE,
-                  width: TILE_SIZE,
-                  height: TILE_SIZE,
-                }}
-                x={cellHover.col * TILE_SIZE}
-                y={cellHover.row * TILE_SIZE}
-                width={TILE_SIZE}
-                height={TILE_SIZE}
-                opacity={0.5}
-                listening={false}
-              />
-            </Layer>
-            // mapData.map((tile, i) => {
-            //       if (!tile) return null;
-            //       const col = i % MAP_COLS;
-            //       const row = Math.floor(i / MAP_COLS);
-            //       return (
-            //         <KonvaImage
-            //           key={i}
-            //           image={tilesetImg}
-            //           crop={{
-            //             x: tile.col * TILE_SIZE,
-            //             y: tile.row * TILE_SIZE,
-            //             width: TILE_SIZE,
-            //             height: TILE_SIZE,
-            //           }}
-            //           x={cellHover.col * TILE_SIZE}
-            //           y={cellHover.row * TILE_SIZE}
-            //           width={TILE_SIZE}
-            //           height={TILE_SIZE}
-            //           listening={false}
-            //         />
-            //       );
-            // })
-          )
-        } */}
-
-        <div style={{ marginTop: 10 }}>
-          <span style={{ fontSize: 11, opacity: 0.7 }}>
-              {Math.round(paletteStageScale * 100)}%
-          </span>
-          <button onClick={resetPaletteView} >
-              Reset view Pallete
-          </button>
-        </div>
-
-        {tilesetImg && (
-          <div
-            style={{
-              marginTop: 10,
-              border: "1px solid #444",
-              overflow: "auto",
-              maxHeight: "45vh",
-            }}
-          >
-            <Stage
-              width={PALLETE_VIEW_WIDTH}
-              height={PALLETE_VIEW_HEIGHT}
-              x={paletteStagePos.x}
-              y={paletteStagePos.y}
-              scaleX={paletteStageScale}
-              scaleY={paletteStageScale}
-              onClick={handlePaletteClick}
-              onWheel={(e) => handleWheelZoom(e,paletteStageScale,setPaletteStageScale,paletteStagePos,setPaletteStagePos)}
-              onMouseDown={handlePaletteMouseDown}
-              onMouseMove={handlePaletteMouseMove}
-            >
-              <Layer>
-                <KonvaImage
-                  image={tilesetImg}
-                  width={tilesetCols * TILE_SIZE}
-                  height={tilesetRows * TILE_SIZE}
-                />
-                {gridLines(tilesetCols, tilesetRows, TILE_SIZE)}
-                {selectedTile && (
-                  <Rect
-                    x={selectedTile.col * TILE_SIZE}
-                    y={selectedTile.row * TILE_SIZE}
-                    width={TILE_SIZE}
-                    height={TILE_SIZE}
-                    stroke="#ffcc00"
-                    strokeWidth={2}
-                    listening={false}
-                  />
-                )}
-              </Layer>
-            </Stage>
-          </div>
-        )}
-
-        <h3>Tools</h3>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => setTool("draw")}
-            style={{
-              padding: "6px 10px",
-              background: tool === "draw" ? "#ffcc00" : "#333",
-              color: tool === "draw" ? "#111" : "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Draw
-          </button>
-          <button
-            onClick={() => setTool("erase")}
-            style={{
-              padding: "6px 10px",
-              background: tool === "erase" ? "#ffcc00" : "#333",
-              color: tool === "erase" ? "#111" : "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Erase
-          </button>
-          <button
-            onClick={() => setTool("line")}
-            style={{
-              padding: "6px 10px",
-              background: tool === "line" ? "#ffcc00" : "#333",
-              color: tool === "line" ? "#111" : "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Line
-          </button>
-        </div>
-        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 6 }}>
-          right-click on the grid to erase without switching tools.
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <span style={{ fontSize: 11, opacity: 0.7 }}>
-            {Math.round(mapStageScale * 100)}%
-          </span>
-          <button onClick={resetMapView}>
-            Reset view Map
-          </button>
-        </div>
-
-        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <button
-            onClick={clearMap}
-            style={{
-              padding: "6px 10px",
-              background: "#552222",
-              color: "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Clear Map
-          </button>
-          <button
-            onClick={exportMap}
-            style={{
-              padding: "6px 10px",
-              background: "#225522",
-              color: "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Export JSON
-          </button>
-        </div>
-      </div>
+    <div className="flex h-screen bg-[#0a0a0e] text-slate-200">
       <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
         <h3 style={{ marginTop: 0 }}>Map</h3>
         {!tilesetImg ? (
@@ -694,6 +485,228 @@ export default function App() {
             </Stage>
           </div>
         )}
+      </div>
+
+      <div className="w-[300px] flex shrink-0 flex-col gap-3 overflow-y-auto border-l border-slate-800 bg-[#0a0a0e] p-3">
+        <div className="flex items-center gap-2">
+          <div className="rounded-full border-slate-700 bg-black  px-3 py-1.5 text-xs leading-tight text-slate-100">
+            Terrain 
+            <br />
+            <span className="text-slate-400">{TILE_SIZE}x{TILE_SIZE}</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Upload tileset"
+            className="ml-auto flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-700 bg-black text-slate-200 hover:bg-slate-800"
+          >
+            +
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+        </div>
+
+        {tilesetImg && (
+          <div className="text-xs text-slate-500">
+            {tilesetCols} x {tilesetRows} tiles ({tilesetImg.width}x
+            {tilesetImg.height}px)
+          </div>
+        )}
+
+        {/* {
+          tilesetImg && selectedTile && cellHover && tool === "draw" && (
+            <Layer>
+              <KonvaImage
+                // key={"i"}
+                Image={tilesetImg}
+                crop={{
+                  x: selectedTile.col * TILE_SIZE,
+                  y: selectedTile.row * TILE_SIZE,
+                  width: TILE_SIZE,
+                  height: TILE_SIZE,
+                }}
+                x={cellHover.col * TILE_SIZE}
+                y={cellHover.row * TILE_SIZE}
+                width={TILE_SIZE}
+                height={TILE_SIZE}
+                opacity={0.5}
+                listening={false}
+              />
+            </Layer>
+            // mapData.map((tile, i) => {
+            //       if (!tile) return null;
+            //       const col = i % MAP_COLS;
+            //       const row = Math.floor(i / MAP_COLS);
+            //       return (
+            //         <KonvaImage
+            //           key={i}
+            //           image={tilesetImg}
+            //           crop={{
+            //             x: tile.col * TILE_SIZE,
+            //             y: tile.row * TILE_SIZE,
+            //             width: TILE_SIZE,
+            //             height: TILE_SIZE,
+            //           }}
+            //           x={cellHover.col * TILE_SIZE}
+            //           y={cellHover.row * TILE_SIZE}
+            //           width={TILE_SIZE}
+            //           height={TILE_SIZE}
+            //           listening={false}
+            //         />
+            //       );
+            // })
+          )
+        } */}
+
+        <div style={{ marginTop: 10 }}>
+          <span style={{ fontSize: 11, opacity: 0.7 }}>
+              {Math.round(paletteStageScale * 100)}%
+          </span>
+          <button onClick={resetPaletteView} >
+              Reset view Pallete
+          </button>
+        </div>
+
+        {tilesetImg ? (
+          <div
+            className="overflow-hidden rounded-lg border border-slate-800 bg-black"
+          >
+            <Stage
+              width={PALLETE_VIEW_WIDTH}
+              height={PALLETE_VIEW_HEIGHT}
+              x={paletteStagePos.x}
+              y={paletteStagePos.y}
+              scaleX={paletteStageScale}
+              scaleY={paletteStageScale}
+              onClick={handlePaletteClick}
+              onWheel={(e) => handleWheelZoom(e,paletteStageScale,setPaletteStageScale,paletteStagePos,setPaletteStagePos)}
+              onMouseDown={handlePaletteMouseDown}
+              onMouseMove={handlePaletteMouseMove}
+            >
+              <Layer>
+                <KonvaImage
+                  image={tilesetImg}
+                  width={tilesetCols * TILE_SIZE}
+                  height={tilesetRows * TILE_SIZE}
+                />
+                {gridLines(tilesetCols, tilesetRows, TILE_SIZE)}
+                {selectedTile && (
+                  <Rect
+                    x={selectedTile.col * TILE_SIZE}
+                    y={selectedTile.row * TILE_SIZE}
+                    width={TILE_SIZE}
+                    height={TILE_SIZE}
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                    listening={false}
+                  />
+                )}
+              </Layer>
+            </Stage>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-slate-700 bg-black px-3 py-10 text-center text-xs text-slate-500">
+            Click the + above to upload a tileset.
+          </div>
+        )}
+
+        <div className="flex items-center justify-between text-[11px] text-slate-500">
+          <span>{Math.round(paletteStageScale * 100)}%</span>
+          <button onClick={resetPaletteView} className="text-sky-400 hover:underline">
+            Reset view Pallete
+          </button>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between rounded-md border border-white bg-black px-3 py-2">
+          <div>
+            <div className="text-xs font-medium text-slate-100">New Layer 1</div>
+            <div className="text-[11px] text-slate-500">Terrain Tileset</div>
+          </div>
+        </div>
+
+        <h3>Tools</h3>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setTool("draw")}
+            style={{
+              padding: "6px 10px",
+              background: tool === "draw" ? "#ffcc00" : "#333",
+              color: tool === "draw" ? "#111" : "#eee",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Draw
+          </button>
+          <button
+            onClick={() => setTool("erase")}
+            style={{
+              padding: "6px 10px",
+              background: tool === "erase" ? "#ffcc00" : "#333",
+              color: tool === "erase" ? "#111" : "#eee",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Erase
+          </button>
+          <button
+            onClick={() => setTool("line")}
+            style={{
+              padding: "6px 10px",
+              background: tool === "line" ? "#ffcc00" : "#333",
+              color: tool === "line" ? "#111" : "#eee",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Line
+          </button>
+        </div>
+        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 6 }}>
+          right-click on the grid to erase without switching tools.
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <span style={{ fontSize: 11, opacity: 0.7 }}>
+            {Math.round(mapStageScale * 100)}%
+          </span>
+          <button onClick={resetMapView}>
+            Reset view Map
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+          <button
+            onClick={clearMap}
+            style={{
+              padding: "6px 10px",
+              background: "#552222",
+              color: "#eee",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Clear Map
+          </button>
+          <button
+            onClick={exportMap}
+            style={{
+              padding: "6px 10px",
+              background: "#225522",
+              color: "#eee",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Export JSON
+          </button>
+        </div>
       </div>
     </div>
   );
