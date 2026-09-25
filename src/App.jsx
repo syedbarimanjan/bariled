@@ -78,7 +78,7 @@ export default function App() {
   const [tilesetRows, setTilesetRows] = useState(0);
 
   const [cellHover,setCellHover] = useState(null);
-  const [selectedTile, setSelectedTile] = useState(null);
+  const [selectedTiles, setSelectedTiles] = useState(null);
   const [tool, setTool] = useState("draw"); // "draw/erase/line/rectangle"
   const lineStartRef = useRef(null);
   const rectangleStartRef = useRef(null);
@@ -134,7 +134,9 @@ export default function App() {
 
   const isPanningPaletteRef = useRef(false);
   const lastPointerPaletteRef = useRef(null);
-  const paletteDraggedRef = useRef(false);
+  // const paletteDraggedRef = useRef(false);
+  const paletteSelectStartRef = useRef(null);
+  const paletteHoverRef = useRef(null);
 
   const handleUpload = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -145,56 +147,69 @@ export default function App() {
       setTilesetImg(img);
       setTilesetCols(Math.floor(img.width / TILE_SIZE));
       setTilesetRows(Math.floor(img.height / TILE_SIZE));
-      setSelectedTile(null);
+      setSelectedTiles(null);
       URL.revokeObjectURL(url);
     };
     img.src = url;
   };
 
-  const handlePaletteClick = (e) => {
-    if(paletteDraggedRef.current){
-      paletteDraggedRef.current = false;
-      return;
-    }
-    const stage = e.target.getStage();
-    const pos = getRelativePointerPosition(stage);
-    const col = Math.floor(pos.x / TILE_SIZE);
-    const row = Math.floor(pos.y / TILE_SIZE);
-    if (col < 0 || row < 0 || col >= tilesetCols || row >= tilesetRows) return;
-    setSelectedTile({ col, row });
-  };
+  // const handlePaletteClick = (e) => {
+  //   if(paletteDraggedRef.current){
+  //     paletteDraggedRef.current = false;
+  //     return;
+  //   }
+  //   const stage = e.target.getStage();
+  //   const pos = getRelativePointerPosition(stage);
+  //   const col = Math.floor(pos.x / TILE_SIZE);
+  //   const row = Math.floor(pos.y / TILE_SIZE);
+  //   if (col < 0 || row < 0 || col >= tilesetCols || row >= tilesetRows) return;
+  //   setSelectedTiles([{ col, row }]);
+  // };
 
   const paintCellAt = useCallback(
     (pos, currentTool) => {
       if(!pos) return;
-      const col = Math.floor(pos.x / TILE_SIZE);
-      const row = Math.floor(pos.y / TILE_SIZE);
-      if (col < 0 || row < 0 || col >= MAP_COLS || row >= MAP_ROWS) return;
-      const index = row * MAP_COLS + col;
-
+      const startingCol = Math.floor(pos.x / TILE_SIZE);
+      const startingRow = Math.floor(pos.y / TILE_SIZE);
+      // if (col < 0 || row < 0 || col >= MAP_COLS || row >= MAP_ROWS) return;
+      
       setMapData((prev) => {
         if (currentTool === "erase") {
+          if (startingCol < 0 || startingRow < 0 || startingCol >= MAP_COLS || startingRow >= MAP_ROWS) return prev;
+          const index = startingRow * MAP_COLS + startingCol;
+
           if (prev[index] === null) return prev;
           const next = prev.slice();
           next[index] = null;
           return next;
         }
-        if (!selectedTile) return prev;
-        const existing = prev[index];
-        if (
-          existing &&
-          existing.col === selectedTile.col &&
-          existing.row === selectedTile.row
-        ) {
-          return prev;
-        }
+        if (!selectedTiles) return prev;
+        // const existing = prev[index];
         const next = prev.slice();
-        next[index] = { col: selectedTile.col, row: selectedTile.row };
-
-        return next;
+        let changed = false;
+        // for (let i = 0; i < selectedTiles.length; i++) {
+        //   if (
+        //     existing &&
+        //     existing.col === selectedTiles[i].col &&
+        //     existing.row === selectedTiles[i].row
+        //   ) {
+        //     return prev;
+        //   }
+        //   next[index] = { col: selectedTiles[i].col, row: selectedTiles[i].row };
+        //   return next;
+        // }
+        selectedTiles.forEach((tile) => {
+          const col = startingCol + tile.dx;
+          const row = startingRow + tile.dy;
+          if(col<0||row<0||col>=MAP_COLS||row>=MAP_ROWS) return;
+            const index = row * MAP_COLS + col;
+            next[index] = {col: tile.col,row: tile.row};
+            changed = true;
+        })
+        return changed ? next : prev;
       });
     },
-    [selectedTile]
+    [selectedTiles]
   );
 
   const handleMapMouseDown = (e) => {
@@ -267,59 +282,115 @@ export default function App() {
     const isMiddleClick = e.evt.button === 1;
     const isSpacePan = e.evt.button === 0 && spaceDownRef.current;
 
-    paletteDraggedRef.current = false;
+    // paletteDraggedRef.current = false;
 
     if(isMiddleClick || isSpacePan) {
       isPanningPaletteRef.current = true;
       lastPointerPaletteRef.current = stage.getPointerPosition();
     }
+
+    const pos = getRelativePointerPosition(stage);
+    if(!pos)return;
+    const col = Math.floor(pos.x/TILE_SIZE);
+    const row = Math.floor(pos.y/TILE_SIZE);
+    paletteSelectStartRef.current = {col,row};
+    paletteHoverRef.current = {col,row};
   }
 
   const handlePaletteMouseMove = (e) => {
-    if(!isPanningPaletteRef.current) return;
     const stage = e.target.getStage();
-    const pointer = stage.getPointerPosition();
-    const last = lastPointerPaletteRef.current;
-    if(pointer && last) {
-      const dx = pointer.x -last.x;
-      const dy = pointer.y -last.y;
-      if(dx!==0||dy!==0) paletteDraggedRef.current = true;
-      setPaletteStagePos((prev) => ({x:prev.x + dx, y:prev.y+dy}));
+    if(isPanningPaletteRef.current) {
+      const pointer = stage.getPointerPosition();
+      const last = lastPointerPaletteRef.current;
+      if(pointer && last) {
+        const dx = pointer.x -last.x;
+        const dy = pointer.y -last.y;
+        // if(dx!==0||dy!==0) paletteDraggedRef.current = true;
+        setPaletteStagePos((prev) => ({x:prev.x + dx, y:prev.y+dy}));
+        // setSelectedTiles([...selectedTiles,{dx,dy}])
+      }
+      lastPointerPaletteRef.current = pointer;
+      return;
     }
-    lastPointerPaletteRef.current = pointer;
+
+    if(paletteSelectStartRef.current){
+      const pos = getRelativePointerPosition(stage);
+      if(pos) {
+        paletteHoverRef.current = {
+          col: Math.floor(pos.x/TILE_SIZE),
+          row: Math.floor(pos.y/TILE_SIZE)
+        }
+      }
+    }
   }
 
   const stopInteraction = () => {
     
-    if(lineStartRef.current && cellHover && selectedTile && tool === "line") {
+    if(lineStartRef.current && cellHover && selectedTiles && tool === "line") {
       const lineCells = getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row);
       setMapData((prev) =>{
         const next = prev.slice();
         let changed = false;
-        lineCells.forEach(({col,row}) => {
-          if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
-            const index = row * MAP_COLS + col;
-            next[index] = {col: selectedTile.col,row: selectedTile.row};
-            changed = true;
-          }
+        lineCells.forEach(({col,row},i) => {
+          // if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
+          //   const index = row * MAP_COLS + col;
+          //   next[index] = {col: selectedTiles[i].col,row: selectedTiles[i].row};
+          //   changed = true;
+          // }
+          selectedTiles.forEach((tile) => {
+            const newCol = col +tile.dx;
+            const newRow = row+tile.dy;
+            if(newCol>=0&&newRow>=0&&newCol<MAP_COLS&&newRow<MAP_ROWS) {
+              const index = newRow * MAP_COLS + newCol;
+              next[index] = {col:tile.col,row:tile.row};
+              changed=true;
+            }
+          })
         })
         return changed ? next : prev;
       })
     }
-    if(rectangleStartRef.current && cellHover && selectedTile && tool === "rectangle"){
+    if(rectangleStartRef.current && cellHover && selectedTiles && tool === "rectangle"){
       const recCells = getRectangleCells(rectangleStartRef.current.col,rectangleStartRef.current.row,cellHover.col,cellHover.row);
       setMapData((prev) =>{
         const next = prev.slice();
         let changed = false;
-        recCells.forEach(({col,row}) => {
-          if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
-            const index = row * MAP_COLS + col;
-            next[index] = {col: selectedTile.col,row: selectedTile.row};
-            changed = true;
-          }
+        recCells.forEach(({col,row},i) => {
+          // if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
+          //   const index = row * MAP_COLS + col;
+          //   next[index] = {col: selectedTiles[i].col,row: selectedTiles[i].row};
+          //   changed = true;
+          // }
+          selectedTiles.forEach((tile) => {
+            const newCol = col +tile.dx;
+            const newRow = row+tile.dy;
+            if(newCol>=0&&newRow>=0&&newCol<MAP_COLS&&newRow<MAP_ROWS) {
+              const index = newRow * MAP_COLS + newCol;
+              next[index] = {col:tile.col,row:tile.row};
+              changed=true;
+            }
+          })
         })
         return changed ? next : prev;
       })
+    }
+
+    if(paletteSelectStartRef.current && paletteHoverRef.current) {
+      const start = paletteSelectStartRef.current;
+      const end = paletteHoverRef.current;
+      const startCol = Math.max(0,Math.min(start.col,end.col));
+      const endCol = Math.min(tilesetCols-1,Math.max(start.col,end.col));
+      const startRow = Math.max(0,Math.min(start.row,end.row));
+      const endRow = Math.min(tilesetRows-1,Math.max(start.row,end.row));
+      const tiles = [];
+      for (let r = startRow; r <= endRow;r++) {
+        for (let c = startCol; c<= endCol;c++){
+          tiles.push({col:c,row:r,dx:c-startCol,dy:r-startRow});
+        }
+      }
+      if(tiles.length) setSelectedTiles(tiles);
+      paletteSelectStartRef.current = null;
+      paletteHoverRef.current = null;
     }
     lineStartRef.current = null;
     rectangleStartRef.current = null;
@@ -480,69 +551,78 @@ export default function App() {
                   );
                 })}
                 {
-                  tilesetImg && selectedTile && cellHover && tool !== "erase" && (
-                      <KonvaImage
-                        // key={"i"}
+                  tilesetImg && selectedTiles && cellHover && tool !== "erase" && (
+                    selectedTiles.map((tile,i)=>{
+                      return ( <KonvaImage
+                        key={i}
                         image={tilesetImg}
                         crop={{
-                          x: selectedTile.col * TILE_SIZE,
-                          y: selectedTile.row * TILE_SIZE,
+                          x: tile.col * TILE_SIZE,
+                          y: tile.row * TILE_SIZE,
                           width: TILE_SIZE,
                           height: TILE_SIZE,
                         }}
-                        x={cellHover.col * TILE_SIZE}
-                        y={cellHover.row * TILE_SIZE}
+                        x={(cellHover.col + tile.dx) * TILE_SIZE}
+                        y={(cellHover.row + tile.dy) * TILE_SIZE}
                         width={TILE_SIZE}
                         height={TILE_SIZE}
                         opacity={0.5}
                         listening={false}
-                      />
+                      />)
+                    })
                   )
                 }
                 {
-                  tilesetImg && selectedTile && lineStartRef.current && cellHover && tool === "line" && (
+                  tilesetImg && selectedTiles && lineStartRef.current && cellHover && tool === "line" && (
                     getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
-                      <KonvaImage
-                        key={index}
+                    selectedTiles.map((tile,i)=>{
+                      return (<KonvaImage
+                        key={i}
                         image={tilesetImg}
                         crop={{
-                          x: selectedTile.col * TILE_SIZE,
-                          y: selectedTile.row * TILE_SIZE,
+                          x: tile.col * TILE_SIZE,
+                          y: tile.row * TILE_SIZE,
                           width: TILE_SIZE,
                           height: TILE_SIZE,
                         }}
-                        x={cell.col * TILE_SIZE}
-                        y={cell.row * TILE_SIZE}
+                        x={(cell.col + tile.dx) * TILE_SIZE}
+                        y={(cell.row + tile.dy) * TILE_SIZE}
                         width={TILE_SIZE}
                         height={TILE_SIZE}
                         opacity={0.5}
                         listening={false}
-                      />
+                      />)
+                    })
                     ))
                   )
                 }
                 {
-                  tilesetImg && selectedTile && rectangleStartRef.current && cellHover && tool === "rectangle" && (
+                  tilesetImg && selectedTiles && rectangleStartRef.current && cellHover && tool === "rectangle" && (
                     getRectangleCells(rectangleStartRef.current.col,rectangleStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
-                      <KonvaImage
-                        key={index}
+                    selectedTiles.map((tile,i)=>{
+                      return (<KonvaImage
+                        key={i}
                         image={tilesetImg}
                         crop={{
-                          x: selectedTile.col * TILE_SIZE,
-                          y: selectedTile.row * TILE_SIZE,
+                          x: tile.col * TILE_SIZE,
+                          y: tile.row * TILE_SIZE,
                           width: TILE_SIZE,
                           height: TILE_SIZE,
                         }}
-                        x={cell.col * TILE_SIZE}
-                        y={cell.row * TILE_SIZE}
+                        x={(cell.col + tile.dx) * TILE_SIZE}
+                        y={(cell.row + tile.dy) * TILE_SIZE}
                         width={TILE_SIZE}
                         height={TILE_SIZE}
                         opacity={0.5}
                         listening={false}
-                      />
+                      />)
+                    })
                     ))
                   )
                 }
+                {/* {
+                  selectedTiles && selectedTiles
+                } */}
                 {gridLines(MAP_COLS, MAP_ROWS, TILE_SIZE)}
               </Layer>
             </Stage>
@@ -592,7 +672,7 @@ export default function App() {
               y={paletteStagePos.y}
               scaleX={paletteStageScale}
               scaleY={paletteStageScale}
-              onClick={handlePaletteClick}
+              // onClick={handlePaletteClick}
               onWheel={(e) => handleWheelZoom(e,paletteStageScale,setPaletteStageScale,paletteStagePos,setPaletteStagePos)}
               onMouseDown={handlePaletteMouseDown}
               onMouseMove={handlePaletteMouseMove}
@@ -604,16 +684,18 @@ export default function App() {
                   height={tilesetRows * TILE_SIZE}
                 />
                 {gridLines(tilesetCols, tilesetRows, TILE_SIZE)}
-                {selectedTile && (
-                  <Rect
-                    x={selectedTile.col * TILE_SIZE}
-                    y={selectedTile.row * TILE_SIZE}
-                    width={TILE_SIZE}
-                    height={TILE_SIZE}
-                    stroke="#ffcc00"
-                    strokeWidth={2}
-                    listening={false}
-                  />
+                {selectedTiles && (
+                  selectedTiles.map((tile,i)=>{
+                    return (<Rect
+                      x={tile.col * TILE_SIZE}
+                      y={tile.row * TILE_SIZE}
+                      width={TILE_SIZE}
+                      height={TILE_SIZE}
+                      stroke="#ffcc00"
+                      strokeWidth={2}
+                      listening={false}
+                    />)
+                  })
                 )}
               </Layer>
             </Stage>
