@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Stage, Layer, Image as KonvaImage, Rect, Line } from "react-konva";
-import { Grid3x3, Paintbrush, PenLine, Eraser, Undo2, Plus } from "lucide-react";
+import { Grid3x3, Paintbrush, PenLine, Eraser, Undo2, Plus, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -443,145 +443,170 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#0a0a0e] text-slate-200">
-      <div className="flex h-14 shrink-0 items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <Grid3x3 size={20} className="text-sky-400" />
-          <span className="text-[15px] font-semibold text-slate-100">
-            Bariled
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900/70 px-2 py-1.5">
-          <ToolButton icon={Paintbrush} active={tool === "draw"} onClick={() => setTool("draw")} title="Draw" />
-          <ToolButton icon={PenLine} active={tool === "line"} onClick={() => setTool("line")} title="Line" />
-          <ToolButton icon={Eraser} active={tool === "erase"} onClick={() => setTool("erase")} title="Erase" />
-          <ToolButton icon={Undo2} onClick={handleUndo} title="Undo (Ctrl+Z)" />
-        </div>
-        <div className="w-8" />
-      </div>
-      <div className="flex min-h-0 flex-1">
-      <div className="flex flex-1 items-center justify-center overflow-auto p-6">
-        <Card className="border-slate-800 bg-black p-4">
-        {!tilesetImg ? (
-          <div className="text-sm text-slate-500">Upload a tileset to start drawing.</div>
-        ) : (
-          <div
-            style={{ display: "inline-block", border: "1px solid #444",width: MAP_VIEW_WIDTH,height: MAP_VIEW_HEIGHT,overflow: "hidden",cursor: spaceDown ? "grab" : tool === "erase" ? "cell" : "crosshair", }}
-            onContextMenu={(e) => e.preventDefault()}
-            onMouseLeave={handleMapMouseLeave}
-          >
-            <Stage
-              width={MAP_VIEW_WIDTH}
-              height={MAP_VIEW_HEIGHT}
-              x={mapStagePos.x}
-              y={mapStagePos.y}
-              scaleX={mapStageScale}
-              scaleY={mapStageScale}
-              onMouseDown={handleMapMouseDown}
-              onMouseMove={handleMapMouseMove}
-              onWheel={(e) => handleWheelZoom(e,mapStageScale,setMapStageScale,mapStagePos,setMapStagePos)}
-            >
-              <Layer>
-                <Rect
-                  x={0}
-                  y={0}
-                  width={MAP_COLS * TILE_SIZE}
-                  height={MAP_ROWS * TILE_SIZE}
-                  fill="#12121a"
-                  listening={false}
-                />
-                {mapData.map((tile, i) => {
-                  if (!tile) return null;
-                  const col = i % MAP_COLS;
-                  const row = Math.floor(i / MAP_COLS);
-                  return (
-                    <KonvaImage
-                      key={i}
-                      image={tilesetImg}
-                      crop={{
-                        x: tile.col * TILE_SIZE,
-                        y: tile.row * TILE_SIZE,
-                        width: TILE_SIZE,
-                        height: TILE_SIZE,
-                      }}
-                      x={col * TILE_SIZE}
-                      y={row * TILE_SIZE}
-                      width={TILE_SIZE}
-                      height={TILE_SIZE}
-                      listening={false}
-                    />
-                  );
-                })}
-                {
-                  tilesetImg && selectedTile && cellHover && tool !== "erase" && (
-                      <KonvaImage
-                        // key={"i"}
-                        image={tilesetImg}
-                        crop={{
-                          x: selectedTile.col * TILE_SIZE,
-                          y: selectedTile.row * TILE_SIZE,
-                          width: TILE_SIZE,
-                          height: TILE_SIZE,
-                        }}
-                        x={cellHover.col * TILE_SIZE}
-                        y={cellHover.row * TILE_SIZE}
-                        width={TILE_SIZE}
-                        height={TILE_SIZE}
-                        opacity={0.5}
-                        listening={false}
-                      />
-                  )
-                }
-                {
-                  tilesetImg && selectedTile && lineStartRef.current && cellHover && tool === "line" && (
-                    getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
-                      <KonvaImage
-                        key={index}
-                        image={tilesetImg}
-                        crop={{
-                          x: selectedTile.col * TILE_SIZE,
-                          y: selectedTile.row * TILE_SIZE,
-                          width: TILE_SIZE,
-                          height: TILE_SIZE,
-                        }}
-                        x={cell.col * TILE_SIZE}
-                        y={cell.row * TILE_SIZE}
-                        width={TILE_SIZE}
-                        height={TILE_SIZE}
-                        opacity={0.5}
-                        listening={false}
-                      />
-                    ))
-                  )
-                }
-                {
-                  tilesetImg && selectedTile && rectangleStartRef.current && cellHover && tool === "rectangle" && (
-                    getRectangleCells(rectangleStartRef.current.col,rectangleStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
-                      <KonvaImage
-                        key={index}
-                        image={tilesetImg}
-                        crop={{
-                          x: selectedTile.col * TILE_SIZE,
-                          y: selectedTile.row * TILE_SIZE,
-                          width: TILE_SIZE,
-                          height: TILE_SIZE,
-                        }}
-                        x={cell.col * TILE_SIZE}
-                        y={cell.row * TILE_SIZE}
-                        width={TILE_SIZE}
-                        height={TILE_SIZE}
-                        opacity={0.5}
-                        listening={false}
-                      />
-                    ))
-                  )
-                }
-                {gridLines(MAP_COLS, MAP_ROWS, TILE_SIZE)}
-              </Layer>
-            </Stage>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-14 shrink-0 items-center justify-between px-6 pt-4">
+          <div className="flex items-center gap-2">
+            <Grid3x3 size={20} className="text-sky-400" />
+            <span className="text-[15px] font-semibold text-slate-100">
+              Bariled
+            </span>
           </div>
-        )}
-      </Card>
+
+          <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900/70 px-2 py-1.5">
+            <ToolButton icon={Paintbrush} active={tool === "draw"} onClick={() => setTool("draw")} title="Draw" />
+            <ToolButton icon={Square} active={tool === "rectangle"} onClick={() => setTool("rectangle")} title="Rectangle" />
+            <ToolButton icon={PenLine} active={tool === "line"} onClick={() => setTool("line")} title="Line" />
+            <ToolButton icon={Eraser} active={tool === "erase"} onClick={() => setTool("erase")} title="Erase" />
+            <ToolButton icon={Undo2} onClick={handleUndo} title="Undo (Ctrl+Z)" />
+          </div>
+        </div>
+        <div className="flex min-h-0 flex-1">
+          <div className="flex flex-1 items-center justify-center overflow-auto p-6">
+            <div className="flex flex-col items-center">
+              <Card className="border-slate-800 bg-black p-4">
+                {!tilesetImg ? (
+                  <div className="text-sm text-slate-500">Upload a tileset to start drawing.</div>
+                ) : (
+                  <div
+                    style={{ display: "inline-block", border: "1px solid #444",width: MAP_VIEW_WIDTH,height: MAP_VIEW_HEIGHT,overflow: "hidden",cursor: spaceDown ? "grab" : tool === "erase" ? "cell" : "crosshair", }}
+                    onContextMenu={(e) => e.preventDefault()}
+                    onMouseLeave={handleMapMouseLeave}
+                  >
+                    <Stage
+                      width={MAP_VIEW_WIDTH}
+                      height={MAP_VIEW_HEIGHT}
+                      x={mapStagePos.x}
+                      y={mapStagePos.y}
+                      scaleX={mapStageScale}
+                      scaleY={mapStageScale}
+                      onMouseDown={handleMapMouseDown}
+                      onMouseMove={handleMapMouseMove}
+                      onWheel={(e) => handleWheelZoom(e,mapStageScale,setMapStageScale,mapStagePos,setMapStagePos)}
+                    >
+                      <Layer>
+                        <Rect
+                          x={0}
+                          y={0}
+                          width={MAP_COLS * TILE_SIZE}
+                          height={MAP_ROWS * TILE_SIZE}
+                          fill="#12121a"
+                          listening={false}
+                        />
+                        {mapData.map((tile, i) => {
+                          if (!tile) return null;
+                          const col = i % MAP_COLS;
+                          const row = Math.floor(i / MAP_COLS);
+                          return (
+                            <KonvaImage
+                              key={i}
+                              image={tilesetImg}
+                              crop={{
+                                x: tile.col * TILE_SIZE,
+                                y: tile.row * TILE_SIZE,
+                                width: TILE_SIZE,
+                                height: TILE_SIZE,
+                              }}
+                              x={col * TILE_SIZE}
+                              y={row * TILE_SIZE}
+                              width={TILE_SIZE}
+                              height={TILE_SIZE}
+                              listening={false}
+                            />
+                          );
+                        })}
+                        {
+                          tilesetImg && selectedTile && cellHover && tool !== "erase" && (
+                              <KonvaImage
+                                // key={"i"}
+                                image={tilesetImg}
+                                crop={{
+                                  x: selectedTile.col * TILE_SIZE,
+                                  y: selectedTile.row * TILE_SIZE,
+                                  width: TILE_SIZE,
+                                  height: TILE_SIZE,
+                                }}
+                                x={cellHover.col * TILE_SIZE}
+                                y={cellHover.row * TILE_SIZE}
+                                width={TILE_SIZE}
+                                height={TILE_SIZE}
+                                opacity={0.5}
+                                listening={false}
+                              />
+                          )
+                        }
+                        {
+                          tilesetImg && selectedTile && lineStartRef.current && cellHover && tool === "line" && (
+                            getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
+                              <KonvaImage
+                                key={index}
+                                image={tilesetImg}
+                                crop={{
+                                  x: selectedTile.col * TILE_SIZE,
+                                  y: selectedTile.row * TILE_SIZE,
+                                  width: TILE_SIZE,
+                                  height: TILE_SIZE,
+                                }}
+                                x={cell.col * TILE_SIZE}
+                                y={cell.row * TILE_SIZE}
+                                width={TILE_SIZE}
+                                height={TILE_SIZE}
+                                opacity={0.5}
+                                listening={false}
+                              />
+                            ))
+                          )
+                        }
+                        {
+                          tilesetImg && selectedTile && rectangleStartRef.current && cellHover && tool === "rectangle" && (
+                            getRectangleCells(rectangleStartRef.current.col,rectangleStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
+                              <KonvaImage
+                                key={index}
+                                image={tilesetImg}
+                                crop={{
+                                  x: selectedTile.col * TILE_SIZE,
+                                  y: selectedTile.row * TILE_SIZE,
+                                  width: TILE_SIZE,
+                                  height: TILE_SIZE,
+                                }}
+                                x={cell.col * TILE_SIZE}
+                                y={cell.row * TILE_SIZE}
+                                width={TILE_SIZE}
+                                height={TILE_SIZE}
+                                opacity={0.5}
+                                listening={false}
+                              />
+                            ))
+                          )
+                        }
+                        {gridLines(MAP_COLS, MAP_ROWS, TILE_SIZE)}
+                      </Layer>
+                    </Stage>
+                  </div>
+                )}
+              </Card>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-end px-6 py-4">
+          <div className="flex items-center gap-3 rounded-full border border-slate-800 bg-slate-900/70 px-2 py-1.5">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={clearMap}
+              className="h-8 rounded-full px-3 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+            >
+              Clear Map
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={exportMap}
+              className="h-8 rounded-full px-3 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+            >
+              Export JSON
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="w-[300px] flex shrink-0 flex-col gap-3 overflow-y-auto border-l border-slate-800 bg-[#0a0a0e] p-3">
@@ -596,7 +621,7 @@ export default function App() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="Upload tileset"
-            className="ml-auto h-8 w-8 flex-shrink-0 rounded-full border-slate-700 bg-black text-slate-200 hover:bg-slate-800"
+            className="ml-auto h-8 w-8 flex shrink-0 rounded-full border-slate-700 bg-black text-slate-200 hover:bg-slate-800"
           >
             <Plus size={16} strokeWidth={2} />
           </Button>
@@ -682,37 +707,7 @@ export default function App() {
             Reset view Map
           </button>
         </div>
-
-        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <button
-            onClick={clearMap}
-            style={{
-              padding: "6px 10px",
-              background: "#552222",
-              color: "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Clear Map
-          </button>
-          <button
-            onClick={exportMap}
-            style={{
-              padding: "6px 10px",
-              background: "#225522",
-              color: "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Export JSON
-          </button>
-        </div>
       </div>
     </div>
-  </div>
   );
 }
