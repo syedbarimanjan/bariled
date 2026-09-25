@@ -431,6 +431,106 @@ export default function App() {
         color: "#eee",
       }}
     >
+      <div style={{ flex: 1, padding: 12 }}>
+        <h3 style={{ marginTop: 0 }}>Map</h3>
+        {!tilesetImg ? (
+          <div style={{ opacity: 0.6 }}>Upload a tileset to start drawing.</div>
+        ) : ( 
+          <div
+            style={{ display: "inline-block", border: "1px solid #444",width: "70vw",height: MAP_VIEW_HEIGHT,overflow: "hidden",cursor: spaceDown ? "grab" : tool === "erase" ? "cell" : "crosshair", }}
+            onContextMenu={(e) => e.preventDefault()}
+            onMouseLeave={handleMapMouseLeave}
+          >
+            <Stage
+              width={MAP_VIEW_WIDTH}
+              height={MAP_VIEW_HEIGHT}
+              x={mapStagePos.x}
+              y={mapStagePos.y}
+              scaleX={mapStageScale}
+              scaleY={mapStageScale}
+              onMouseDown={handleMapMouseDown}
+              onMouseMove={handleMapMouseMove}
+              onWheel={(e) => handleWheelZoom(e,mapStageScale,setMapStageScale,mapStagePos,setMapStagePos)}
+            >
+              <Layer>
+                <Rect
+                  x={0}
+                  y={0}
+                  width={MAP_COLS * TILE_SIZE}
+                  height={MAP_ROWS * TILE_SIZE}
+                  fill="#12121a"
+                  listening={false}
+                />
+                {mapData.map((tile, i) => {
+                  if (!tile) return null;
+                  const col = i % MAP_COLS;
+                  const row = Math.floor(i / MAP_COLS);
+                  return (
+                    <KonvaImage
+                      key={i}
+                      image={tilesetImg}
+                      crop={{
+                        x: tile.col * TILE_SIZE,
+                        y: tile.row * TILE_SIZE,
+                        width: TILE_SIZE,
+                        height: TILE_SIZE,
+                      }}
+                      x={col * TILE_SIZE}
+                      y={row * TILE_SIZE}
+                      width={TILE_SIZE}
+                      height={TILE_SIZE}
+                      listening={false}
+                    />
+                  );
+                })}
+                {
+                  tilesetImg && selectedTile && cellHover && tool !== "erase" && (
+                      <KonvaImage
+                        // key={"i"}
+                        image={tilesetImg}
+                        crop={{
+                          x: selectedTile.col * TILE_SIZE,
+                          y: selectedTile.row * TILE_SIZE,
+                          width: TILE_SIZE,
+                          height: TILE_SIZE,
+                        }}
+                        x={cellHover.col * TILE_SIZE}
+                        y={cellHover.row * TILE_SIZE}
+                        width={TILE_SIZE}
+                        height={TILE_SIZE}
+                        opacity={0.5}
+                        listening={false}
+                      />
+                  )
+                }
+                {
+                  tilesetImg && selectedTile && lineStartRef.current && cellHover && tool === "line" && (
+                    getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
+                      <KonvaImage
+                        key={index}
+                        image={tilesetImg}
+                        crop={{
+                          x: selectedTile.col * TILE_SIZE,
+                          y: selectedTile.row * TILE_SIZE,
+                          width: TILE_SIZE,
+                          height: TILE_SIZE,
+                        }}
+                        x={cell.col * TILE_SIZE}
+                        y={cell.row * TILE_SIZE}
+                        width={TILE_SIZE}
+                        height={TILE_SIZE}
+                        opacity={0.5}
+                        listening={false}
+                      />
+                    ))
+                  )
+                }
+                {gridLines(MAP_COLS, MAP_ROWS, TILE_SIZE)}
+              </Layer>
+            </Stage>
+          </div>
+        )}
+      </div>
       <div
         style={{
           width: 300,
@@ -598,106 +698,6 @@ export default function App() {
             Export JSON
           </button>
         </div>
-      </div>
-      <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
-        <h3 style={{ marginTop: 0 }}>Map</h3>
-        {!tilesetImg ? (
-          <div style={{ opacity: 0.6 }}>Upload a tileset to start drawing.</div>
-        ) : (
-          <div
-            style={{ display: "inline-block", border: "1px solid #444",width: MAP_VIEW_WIDTH,height: MAP_VIEW_HEIGHT,overflow: "hidden",cursor: spaceDown ? "grab" : tool === "erase" ? "cell" : "crosshair", }}
-            onContextMenu={(e) => e.preventDefault()}
-            onMouseLeave={handleMapMouseLeave}
-          >
-            <Stage
-              width={MAP_VIEW_WIDTH}
-              height={MAP_VIEW_HEIGHT}
-              x={mapStagePos.x}
-              y={mapStagePos.y}
-              scaleX={mapStageScale}
-              scaleY={mapStageScale}
-              onMouseDown={handleMapMouseDown}
-              onMouseMove={handleMapMouseMove}
-              onWheel={(e) => handleWheelZoom(e,mapStageScale,setMapStageScale,mapStagePos,setMapStagePos)}
-            >
-              <Layer>
-                <Rect
-                  x={0}
-                  y={0}
-                  width={MAP_COLS * TILE_SIZE}
-                  height={MAP_ROWS * TILE_SIZE}
-                  fill="#12121a"
-                  listening={false}
-                />
-                {mapData.map((tile, i) => {
-                  if (!tile) return null;
-                  const col = i % MAP_COLS;
-                  const row = Math.floor(i / MAP_COLS);
-                  return (
-                    <KonvaImage
-                      key={i}
-                      image={tilesetImg}
-                      crop={{
-                        x: tile.col * TILE_SIZE,
-                        y: tile.row * TILE_SIZE,
-                        width: TILE_SIZE,
-                        height: TILE_SIZE,
-                      }}
-                      x={col * TILE_SIZE}
-                      y={row * TILE_SIZE}
-                      width={TILE_SIZE}
-                      height={TILE_SIZE}
-                      listening={false}
-                    />
-                  );
-                })}
-                {
-                  tilesetImg && selectedTile && cellHover && tool === "draw" && (
-                      <KonvaImage
-                        // key={"i"}
-                        image={tilesetImg}
-                        crop={{
-                          x: selectedTile.col * TILE_SIZE,
-                          y: selectedTile.row * TILE_SIZE,
-                          width: TILE_SIZE,
-                          height: TILE_SIZE,
-                        }}
-                        x={cellHover.col * TILE_SIZE}
-                        y={cellHover.row * TILE_SIZE}
-                        width={TILE_SIZE}
-                        height={TILE_SIZE}
-                        opacity={0.5}
-                        listening={false}
-                      />
-                  )
-                }
-                {
-                  tilesetImg && selectedTile && lineStartRef.current && cellHover && tool === "line" && (
-                    getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
-                      <KonvaImage
-                        key={index}
-                        image={tilesetImg}
-                        crop={{
-                          x: selectedTile.col * TILE_SIZE,
-                          y: selectedTile.row * TILE_SIZE,
-                          width: TILE_SIZE,
-                          height: TILE_SIZE,
-                        }}
-                        x={cell.col * TILE_SIZE}
-                        y={cell.row * TILE_SIZE}
-                        width={TILE_SIZE}
-                        height={TILE_SIZE}
-                        opacity={0.5}
-                        listening={false}
-                      />
-                    ))
-                  )
-                }
-                {gridLines(MAP_COLS, MAP_ROWS, TILE_SIZE)}
-              </Layer>
-            </Stage>
-          </div>
-        )}
       </div>
     </div>
   );
