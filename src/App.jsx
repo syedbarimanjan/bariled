@@ -134,7 +134,6 @@ export default function App() {
 
   const isPanningPaletteRef = useRef(false);
   const lastPointerPaletteRef = useRef(null);
-  // const paletteDraggedRef = useRef(false);
   const paletteSelectStartRef = useRef(null);
   const paletteHoverRef = useRef(null);
 
@@ -153,25 +152,11 @@ export default function App() {
     img.src = url;
   };
 
-  // const handlePaletteClick = (e) => {
-  //   if(paletteDraggedRef.current){
-  //     paletteDraggedRef.current = false;
-  //     return;
-  //   }
-  //   const stage = e.target.getStage();
-  //   const pos = getRelativePointerPosition(stage);
-  //   const col = Math.floor(pos.x / TILE_SIZE);
-  //   const row = Math.floor(pos.y / TILE_SIZE);
-  //   if (col < 0 || row < 0 || col >= tilesetCols || row >= tilesetRows) return;
-  //   setSelectedTiles([{ col, row }]);
-  // };
-
   const paintCellAt = useCallback(
     (pos, currentTool) => {
       if(!pos) return;
       const startingCol = Math.floor(pos.x / TILE_SIZE);
       const startingRow = Math.floor(pos.y / TILE_SIZE);
-      // if (col < 0 || row < 0 || col >= MAP_COLS || row >= MAP_ROWS) return;
       
       setMapData((prev) => {
         if (currentTool === "erase") {
@@ -184,20 +169,8 @@ export default function App() {
           return next;
         }
         if (!selectedTiles) return prev;
-        // const existing = prev[index];
         const next = prev.slice();
         let changed = false;
-        // for (let i = 0; i < selectedTiles.length; i++) {
-        //   if (
-        //     existing &&
-        //     existing.col === selectedTiles[i].col &&
-        //     existing.row === selectedTiles[i].row
-        //   ) {
-        //     return prev;
-        //   }
-        //   next[index] = { col: selectedTiles[i].col, row: selectedTiles[i].row };
-        //   return next;
-        // }
         selectedTiles.forEach((tile) => {
           const col = startingCol + tile.dx;
           const row = startingRow + tile.dy;
@@ -282,8 +255,6 @@ export default function App() {
     const isMiddleClick = e.evt.button === 1;
     const isSpacePan = e.evt.button === 0 && spaceDownRef.current;
 
-    // paletteDraggedRef.current = false;
-
     if(isMiddleClick || isSpacePan) {
       isPanningPaletteRef.current = true;
       lastPointerPaletteRef.current = stage.getPointerPosition();
@@ -305,9 +276,7 @@ export default function App() {
       if(pointer && last) {
         const dx = pointer.x -last.x;
         const dy = pointer.y -last.y;
-        // if(dx!==0||dy!==0) paletteDraggedRef.current = true;
         setPaletteStagePos((prev) => ({x:prev.x + dx, y:prev.y+dy}));
-        // setSelectedTiles([...selectedTiles,{dx,dy}])
       }
       lastPointerPaletteRef.current = pointer;
       return;
@@ -332,11 +301,6 @@ export default function App() {
         const next = prev.slice();
         let changed = false;
         lineCells.forEach(({col,row},i) => {
-          // if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
-          //   const index = row * MAP_COLS + col;
-          //   next[index] = {col: selectedTiles[i].col,row: selectedTiles[i].row};
-          //   changed = true;
-          // }
           selectedTiles.forEach((tile) => {
             const newCol = col +tile.dx;
             const newRow = row+tile.dy;
@@ -356,11 +320,6 @@ export default function App() {
         const next = prev.slice();
         let changed = false;
         recCells.forEach(({col,row},i) => {
-          // if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
-          //   const index = row * MAP_COLS + col;
-          //   next[index] = {col: selectedTiles[i].col,row: selectedTiles[i].row};
-          //   changed = true;
-          // }
           selectedTiles.forEach((tile) => {
             const newCol = col +tile.dx;
             const newRow = row+tile.dy;
@@ -672,7 +631,6 @@ export default function App() {
               y={paletteStagePos.y}
               scaleX={paletteStageScale}
               scaleY={paletteStageScale}
-              // onClick={handlePaletteClick}
               onWheel={(e) => handleWheelZoom(e,paletteStageScale,setPaletteStageScale,paletteStagePos,setPaletteStagePos)}
               onMouseDown={handlePaletteMouseDown}
               onMouseMove={handlePaletteMouseMove}
