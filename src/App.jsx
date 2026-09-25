@@ -56,6 +56,8 @@ export default function App() {
   const [paletteStagePos, setPaletteStagePos] = useState({ x: 0, y: 0 });
   const [paletteStageScale, setPaletteStageScale] = useState(1);
 
+  const [undo,setUndo] = useState([mapData]);
+
    const [spaceDown, setSpaceDown] = useState(false);
     const spaceDownRef = useRef(false);
     useEffect(() => {
@@ -68,6 +70,17 @@ export default function App() {
           e.preventDefault();
           setSpaceDown(true);
         }
+        if(e.ctrlKey && e.code === "KeyZ"){
+          console.log("blahaa",e);
+          e.preventDefault();
+          if(undo.length > 0){
+            if (undo.length === 0) return;
+            const undoCopy = [...undo];
+            const prevMap = undoCopy.pop();
+            setMapData(prevMap);
+            setUndo(undoCopy);
+          }
+        }
       };
       const onKeyUp = (e) => {
         if (e.code === "Space") setSpaceDown(false);
@@ -78,7 +91,7 @@ export default function App() {
         window.removeEventListener("keydown", onKeyDown);
         window.removeEventListener("keyup", onKeyUp);
       };
-    }, []);
+    }, [undo,setUndo,setMapData]);
   
 
     const paintingRef = useRef(false);
@@ -154,8 +167,12 @@ export default function App() {
         }
         const next = prev.slice();
         next[index] = { col: selectedTile.col, row: selectedTile.row };
+
         return next;
       });
+      // setUndo([...undo,mapData]);
+      // console.log(mapData,"first")
+      // console.log(undo,"first")
     },
     [selectedTile]
   );
@@ -185,6 +202,9 @@ export default function App() {
     paintToolRef.current = currentTool;
     paintingRef.current = true;
     paintCellAt(pos, currentTool);
+    setUndo([...undo,mapData]);
+      console.log(mapData,"first")
+      console.log(undo,"first")
   };
 
   const handleMapMouseMove = (e) => {
@@ -250,7 +270,7 @@ export default function App() {
   }
 
   const stopInteraction = () => {
-    console.log(tool)
+    
     if(lineStartRef.current && cellHover && selectedTile && tool === "line") {
       const lineCells = getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row);
       setMapData((prev) =>{
@@ -265,6 +285,9 @@ export default function App() {
         })
         return changed ? next : prev;
       })
+      // setUndo([...undo,mapData]);
+      // console.log(mapData,"sec")
+      // console.log(undo,"sec")
       // setMapData((prev) => {
       //   if(tool === "line") {
       //     const next = prev.slice();
@@ -302,6 +325,9 @@ export default function App() {
     paintingRef.current = false;
     isPanningMapRef.current = false;
     isPanningPaletteRef.current = false;
+    // setUndo([...undo,mapData]);
+    // console.log(mapData,"sec")
+    // console.log(undo,"sec")
   }
 
   useEffect(() => {
@@ -384,6 +410,17 @@ export default function App() {
     setPos({x:pointer.x - worldPoint.x * newScale,y:pointer.y - worldPoint.y * newScale});
   }
 
+  const handleUndo = (e) => {
+    console.log("event",e);
+    console.log(e.ctrlKey)
+    if (undo.length === 0) return;
+    const undoCopy = [...undo];
+    const prevMap = undoCopy.pop();
+    setMapData(prevMap);
+    setUndo(undoCopy);
+    console.log(undo);
+  }
+
   return (
     <div
       style={{
@@ -412,52 +449,6 @@ export default function App() {
             {tilesetImg.height}px)
           </div>
         )}
-
-        {/* {
-          tilesetImg && selectedTile && cellHover && tool === "draw" && (
-            <Layer>
-              <KonvaImage
-                // key={"i"}
-                Image={tilesetImg}
-                crop={{
-                  x: selectedTile.col * TILE_SIZE,
-                  y: selectedTile.row * TILE_SIZE,
-                  width: TILE_SIZE,
-                  height: TILE_SIZE,
-                }}
-                x={cellHover.col * TILE_SIZE}
-                y={cellHover.row * TILE_SIZE}
-                width={TILE_SIZE}
-                height={TILE_SIZE}
-                opacity={0.5}
-                listening={false}
-              />
-            </Layer>
-            // mapData.map((tile, i) => {
-            //       if (!tile) return null;
-            //       const col = i % MAP_COLS;
-            //       const row = Math.floor(i / MAP_COLS);
-            //       return (
-            //         <KonvaImage
-            //           key={i}
-            //           image={tilesetImg}
-            //           crop={{
-            //             x: tile.col * TILE_SIZE,
-            //             y: tile.row * TILE_SIZE,
-            //             width: TILE_SIZE,
-            //             height: TILE_SIZE,
-            //           }}
-            //           x={cellHover.col * TILE_SIZE}
-            //           y={cellHover.row * TILE_SIZE}
-            //           width={TILE_SIZE}
-            //           height={TILE_SIZE}
-            //           listening={false}
-            //         />
-            //       );
-            // })
-          )
-        } */}
-
         <div style={{ marginTop: 10 }}>
           <span style={{ fontSize: 11, opacity: 0.7 }}>
               {Math.round(paletteStageScale * 100)}%
@@ -551,6 +542,19 @@ export default function App() {
             }}
           >
             Line
+          </button>
+          <button
+            onClick={handleUndo}
+            style={{
+              padding: "6px 10px",
+              background: tool === "line" ? "#ffcc00" : "#333",
+              color: tool === "line" ? "#111" : "#eee",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            undo
           </button>
         </div>
         <div style={{ fontSize: 11, opacity: 0.7, marginTop: 6 }}>
