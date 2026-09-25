@@ -105,7 +105,6 @@ export default function App() {
         setSpaceDown(true);
       }
       if(e.ctrlKey && e.code === "KeyZ"){
-        console.log("blahaa",e);
         e.preventDefault();
         if(undo.length > 0){
           if (undo.length === 0) return;
@@ -163,7 +162,6 @@ export default function App() {
     const row = Math.floor(pos.y / TILE_SIZE);
     if (col < 0 || row < 0 || col >= tilesetCols || row >= tilesetRows) return;
     setSelectedTile({ col, row });
-    setTool("draw");
   };
 
   const paintCellAt = useCallback(
@@ -254,12 +252,7 @@ export default function App() {
     if(pos){
       const col = Math.floor(pos.x/TILE_SIZE);
       const row = Math.floor(pos.y/TILE_SIZE);
-      // if(col>=0&&row>=0){
-        setCellHover({col,row});
-      // }
-      // }else {
-      //   setCellHover(null);
-      // }
+      setCellHover({col,row});
     }
 
     if (!paintingRef.current) return;
