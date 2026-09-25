@@ -40,6 +40,38 @@ function getLineCellsUsingBresenhamsAlgorithm(x0,y0,x1,y1) {
   return cells;
 }
 
+function getRectangleCells(x0, y0, x1, y1) {
+    const cells = [];
+    
+    const sx = (x0 < x1) ? 1 : -1;
+    const sy = (y0 < y1) ? 1 : -1;
+    
+    let cy = y0;
+    while (true) {
+      
+      let cx = x0;
+      while (true) {
+        cells.push({ col: cx, row: cy });
+        
+        if (cx === x1) break;
+        cx += sx;
+      }
+
+      if (cy === y1) break;
+      cy += sy;
+    }
+
+    return cells;
+}
+
+function getRelativePointerPosition(stage) {
+  const pointer = stage.getPointerPosition();
+  if (!pointer) return null;
+  const transform = stage.getAbsoluteTransform().copy();
+  transform.invert();
+  return transform.point(pointer);
+}
+
 export default function App() {
   const [tilesetImg, setTilesetImg] = useState(null);
   const [tilesetCols, setTilesetCols] = useState(0);
@@ -47,8 +79,10 @@ export default function App() {
 
   const [cellHover,setCellHover] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
-  const [tool, setTool] = useState("draw"); // "draw/erase/line"
+  const [tool, setTool] = useState("draw"); // "draw/erase/line/rectangle"
   const lineStartRef = useRef(null);
+  const rectangleStartRef = useRef(null);
+  const rectangleEndRef = useRef(null);
   
   const [mapData, setMapData] = useState(() => Array(MAP_COLS * MAP_ROWS).fill(null));
   const [mapStagePos, setMapStagePos] = useState({ x: 0, y: 0 });
@@ -58,59 +92,50 @@ export default function App() {
 
   const [undo,setUndo] = useState([mapData]);
 
-   const [spaceDown, setSpaceDown] = useState(false);
-    const spaceDownRef = useRef(false);
-    useEffect(() => {
-      spaceDownRef.current = spaceDown;
-    }, [spaceDown]);
-  
-    useEffect(() => {
-      const onKeyDown = (e) => {
-        if (e.code === "Space") {
-          e.preventDefault();
-          setSpaceDown(true);
-        }
-        if(e.ctrlKey && e.code === "KeyZ"){
-          console.log("blahaa",e);
-          e.preventDefault();
-          if(undo.length > 0){
-            if (undo.length === 0) return;
-            const undoCopy = [...undo];
-            const prevMap = undoCopy.pop();
-            setMapData(prevMap);
-            setUndo(undoCopy);
-          }
-        }
-      };
-      const onKeyUp = (e) => {
-        if (e.code === "Space") setSpaceDown(false);
-      };
-      window.addEventListener("keydown", onKeyDown);
-      window.addEventListener("keyup", onKeyUp);
-      return () => {
-        window.removeEventListener("keydown", onKeyDown);
-        window.removeEventListener("keyup", onKeyUp);
-      };
-    }, [undo,setUndo,setMapData]);
-  
+  const [spaceDown, setSpaceDown] = useState(false);
+  const spaceDownRef = useRef(false);
+  useEffect(() => {
+    spaceDownRef.current = spaceDown;
+  }, [spaceDown]);
 
-    const paintingRef = useRef(false);
-    const paintToolRef = useRef("draw");
-  
-    const isPanningMapRef = useRef(false);
-    const lastPointerMapRef = useRef(null);
-  
-    const isPanningPaletteRef = useRef(false);
-    const lastPointerPaletteRef = useRef(null);
-    const paletteDraggedRef = useRef(false);
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        setSpaceDown(true);
+      }
+      if(e.ctrlKey && e.code === "KeyZ"){
+        console.log("blahaa",e);
+        e.preventDefault();
+        if(undo.length > 0){
+          if (undo.length === 0) return;
+          const undoCopy = [...undo];
+          const prevMap = undoCopy.pop();
+          setMapData(prevMap);
+          setUndo(undoCopy);
+        }
+      }
+    };
+    const onKeyUp = (e) => {
+      if (e.code === "Space") setSpaceDown(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [undo,setUndo,setMapData]);
 
-  function getRelativePointerPosition(stage) {
-    const pointer = stage.getPointerPosition();
-    if (!pointer) return null;
-    const transform = stage.getAbsoluteTransform().copy();
-    transform.invert();
-    return transform.point(pointer);
-  }
+  const paintingRef = useRef(false);
+  const paintToolRef = useRef("draw");
+
+  const isPanningMapRef = useRef(false);
+  const lastPointerMapRef = useRef(null);
+
+  const isPanningPaletteRef = useRef(false);
+  const lastPointerPaletteRef = useRef(null);
+  const paletteDraggedRef = useRef(false);
 
   const handleUpload = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -170,9 +195,6 @@ export default function App() {
 
         return next;
       });
-      // setUndo([...undo,mapData]);
-      // console.log(mapData,"first")
-      // console.log(undo,"first")
     },
     [selectedTile]
   );
@@ -199,12 +221,18 @@ export default function App() {
       return;
     }
 
+    if(currentTool === "rectangle"){
+      const col = Math.floor(pos.x/TILE_SIZE);
+      const row = Math.floor(pos.y/TILE_SIZE);
+      rectangleStartRef.current = {col,row};
+      paintingRef.current = true;
+      return;
+    }
+
     paintToolRef.current = currentTool;
     paintingRef.current = true;
     paintCellAt(pos, currentTool);
     setUndo([...undo,mapData]);
-      console.log(mapData,"first")
-      console.log(undo,"first")
   };
 
   const handleMapMouseMove = (e) => {
@@ -226,13 +254,12 @@ export default function App() {
     if(pos){
       const col = Math.floor(pos.x/TILE_SIZE);
       const row = Math.floor(pos.y/TILE_SIZE);
-      if(col>=0&&row>=0&&col<MAP_COLS && row< MAP_ROWS){
-        // lineStartRef.current.col = col;
-        // lineStartRef.current.row = row;
+      // if(col>=0&&row>=0){
         setCellHover({col,row});
-      }else {
-        setCellHover(null);
-      }
+      // }
+      // }else {
+      //   setCellHover(null);
+      // }
     }
 
     if (!paintingRef.current) return;
@@ -285,49 +312,28 @@ export default function App() {
         })
         return changed ? next : prev;
       })
-      // setUndo([...undo,mapData]);
-      // console.log(mapData,"sec")
-      // console.log(undo,"sec")
-      // setMapData((prev) => {
-      //   if(tool === "line") {
-      //     const next = prev.slice();
-      //     let changed = false;
-      //     lineCells.forEach(({col,row}) => {
-      //       const index = row * MAP_COLS + col;
-      //       // if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
-      //         next[index] = {col: selectedTile.col,row: selectedTile.row};
-      //         changed = true;
-      //       // }
-      //     })
-      //     return changed ? next : prev;
-      //   }
-      //   if (currentTool === "erase") {
-      //     if (prev[index] === null) return prev;
-      //     const next = prev.slice();
-      //     next[index] = null;
-      //     return next;
-      //   }
-      //   if (!selectedTile) return prev;
-      //   const existing = prev[index];
-      //   if (
-      //     existing &&
-      //     existing.col === selectedTile.col &&
-      //     existing.row === selectedTile.row
-      //   ) {
-      //     return prev;
-      //   }
-      //   const next = prev.slice();
-      //   next[index] = { col: selectedTile.col, row: selectedTile.row };
-      //   return next;
-      // });
+    }
+    if(rectangleStartRef.current && cellHover && selectedTile && tool === "rectangle"){
+      const recCells = getRectangleCells(rectangleStartRef.current.col,rectangleStartRef.current.row,cellHover.col,cellHover.row);
+      setMapData((prev) =>{
+        const next = prev.slice();
+        let changed = false;
+        recCells.forEach(({col,row}) => {
+          if(col>=0&&row>=0&&col<MAP_COLS&&row<MAP_ROWS) {
+            const index = row * MAP_COLS + col;
+            next[index] = {col: selectedTile.col,row: selectedTile.row};
+            changed = true;
+          }
+        })
+        return changed ? next : prev;
+      })
     }
     lineStartRef.current = null;
+    rectangleStartRef.current = null;
+    rectangleEndRef.current = null;
     paintingRef.current = false;
     isPanningMapRef.current = false;
     isPanningPaletteRef.current = false;
-    // setUndo([...undo,mapData]);
-    // console.log(mapData,"sec")
-    // console.log(undo,"sec")
   }
 
   useEffect(() => {
@@ -411,14 +417,11 @@ export default function App() {
   }
 
   const handleUndo = (e) => {
-    console.log("event",e);
-    console.log(e.ctrlKey)
     if (undo.length === 0) return;
     const undoCopy = [...undo];
     const prevMap = undoCopy.pop();
     setMapData(prevMap);
     setUndo(undoCopy);
-    console.log(undo);
   }
 
   return (
@@ -506,6 +509,28 @@ export default function App() {
                 {
                   tilesetImg && selectedTile && lineStartRef.current && cellHover && tool === "line" && (
                     getLineCellsUsingBresenhamsAlgorithm(lineStartRef.current.col,lineStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
+                      <KonvaImage
+                        key={index}
+                        image={tilesetImg}
+                        crop={{
+                          x: selectedTile.col * TILE_SIZE,
+                          y: selectedTile.row * TILE_SIZE,
+                          width: TILE_SIZE,
+                          height: TILE_SIZE,
+                        }}
+                        x={cell.col * TILE_SIZE}
+                        y={cell.row * TILE_SIZE}
+                        width={TILE_SIZE}
+                        height={TILE_SIZE}
+                        opacity={0.5}
+                        listening={false}
+                      />
+                    ))
+                  )
+                }
+                {
+                  tilesetImg && selectedTile && rectangleStartRef.current && cellHover && tool === "rectangle" && (
+                    getRectangleCells(rectangleStartRef.current.col,rectangleStartRef.current.row,cellHover.col,cellHover.row).map((cell,index) => (
                       <KonvaImage
                         key={index}
                         image={tilesetImg}
@@ -642,6 +667,19 @@ export default function App() {
             }}
           >
             Line
+          </button>
+          <button
+            onClick={() => setTool("rectangle")}
+            style={{
+              padding: "6px 10px",
+              background: tool === "rectangle" ? "#ffcc00" : "#333",
+              color: tool === "rectangle" ? "#111" : "#eee",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            rectangle
           </button>
           <button
             onClick={handleUndo}
