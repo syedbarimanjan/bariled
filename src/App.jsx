@@ -1,6 +1,28 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Stage, Layer, Image as KonvaImage, Rect, Line } from "react-konva";
+import { Grid3x3, Paintbrush, PenLine, Eraser, Undo2, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
+function ToolButton({ icon: Icon, active, onClick, title}) {
+  return (
+    <Button
+      type="button"
+      title={title}
+      onClick={onClick}
+      variant={active ? "default" : "ghost"}
+      size="icon"
+      className={[
+        "h-8 w-8 rounded-full",
+        active
+          ? "bg-sky-400 text-slate-950 hover:bg-sky-400"
+          : "text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+      ].join(" ")}
+    >
+      <Icon size={16} strokeWidth={2} />
+    </Button>
+  )
+}
 const MAP_VIEW_WIDTH = 1280;
 const MAP_VIEW_HEIGHT = 720;
 const PALLETE_VIEW_WIDTH = 276;
@@ -425,10 +447,27 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#0a0a0e] text-slate-200">
-      <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
-        <h3 style={{ marginTop: 0 }}>Map</h3>
+      <div className="flex h-14 shrink-0 items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <Grid3x3 size={20} className="text-sky-400" />
+          <span className="text-[15px] font-semibold text-slate-100">
+            Bariled
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1 rounded-full border border-slate-800 bg-slate-900/70 px-2 py-1.5">
+          <ToolButton icon={Paintbrush} active={tool === "draw"} onClick={() => setTool("draw")} title="Draw" />
+          <ToolButton icon={PenLine} active={tool === "line"} onClick={() => setTool("line")} title="Line" />
+          <ToolButton icon={Eraser} active={tool === "erase"} onClick={() => setTool("erase")} title="Erase" />
+          <ToolButton icon={Undo2} onClick={handleUndo} title="Undo (Ctrl+Z)" />
+        </div>
+        <div className="w-8" />
+      </div>
+      <div className="flex min-h-0 flex-1">
+      <div className="flex flex-1 items-center justify-center overflow-auto p-6">
+        <Card className="border-slate-800 bg-black p-4">
         {!tilesetImg ? (
-          <div style={{ opacity: 0.6 }}>Upload a tileset to start drawing.</div>
+          <div className="text-sm text-slate-500">Upload a tileset to start drawing.</div>
         ) : (
           <div
             style={{ display: "inline-block", border: "1px solid #444",width: MAP_VIEW_WIDTH,height: MAP_VIEW_HEIGHT,overflow: "hidden",cursor: spaceDown ? "grab" : tool === "erase" ? "cell" : "crosshair", }}
@@ -524,6 +563,7 @@ export default function App() {
             </Stage>
           </div>
         )}
+      </Card>
       </div>
 
       <div className="w-[300px] flex shrink-0 flex-col gap-3 overflow-y-auto border-l border-slate-800 bg-[#0a0a0e] p-3">
@@ -534,14 +574,14 @@ export default function App() {
             <span className="text-slate-400">{TILE_SIZE}x{TILE_SIZE}</span>
           </div>
 
-          <button
+          <Button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="Upload tileset"
-            className="ml-auto flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-700 bg-black text-slate-200 hover:bg-slate-800"
+            className="ml-auto h-8 w-8 flex-shrink-0 rounded-full border-slate-700 bg-black text-slate-200 hover:bg-slate-800"
           >
-            +
-          </button>
+            <Plus size={16} strokeWidth={2} />
+          </Button>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
         </div>
 
@@ -616,65 +656,6 @@ export default function App() {
           </div>
         </div>
 
-        <h3>Tools</h3>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => setTool("draw")}
-            style={{
-              padding: "6px 10px",
-              background: tool === "draw" ? "#ffcc00" : "#333",
-              color: tool === "draw" ? "#111" : "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Draw
-          </button>
-          <button
-            onClick={() => setTool("erase")}
-            style={{
-              padding: "6px 10px",
-              background: tool === "erase" ? "#ffcc00" : "#333",
-              color: tool === "erase" ? "#111" : "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Erase
-          </button>
-          <button
-            onClick={() => setTool("line")}
-            style={{
-              padding: "6px 10px",
-              background: tool === "line" ? "#ffcc00" : "#333",
-              color: tool === "line" ? "#111" : "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            Line
-          </button>
-          <button
-            onClick={handleUndo}
-            style={{
-              padding: "6px 10px",
-              background: tool === "line" ? "#ffcc00" : "#333",
-              color: tool === "line" ? "#111" : "#eee",
-              border: "none",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          >
-            undo
-          </button>
-        </div>
-        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 6 }}>
-          right-click on the grid to erase without switching tools.
-        </div>
-
         <div style={{ marginTop: 14 }}>
           <span style={{ fontSize: 11, opacity: 0.7 }}>
             {Math.round(mapStageScale * 100)}%
@@ -714,5 +695,6 @@ export default function App() {
         </div>
       </div>
     </div>
+  </div>
   );
 }
