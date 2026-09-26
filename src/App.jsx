@@ -13,7 +13,7 @@ function ToolButton({ icon: Icon, active, onClick, title}) {
       variant={active ? "default" : "ghost"}
       size="icon"
       className={[
-        "h-8 w-8 rounded-full",
+        "h-8 w-8 rounded-full cursor-pointer",
         active
           ? "bg-sky-400 text-slate-950 hover:bg-sky-400"
           : "text-slate-300 hover:bg-slate-800 hover:text-slate-100"
@@ -631,7 +631,7 @@ export default function App() {
               type="button"
               variant="ghost"
               onClick={clearMap}
-              className="h-8 rounded-full px-3 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+              className="h-8 rounded-full px-3 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-100 cursor-pointer"
             >
               Clear Map
             </Button>
@@ -639,10 +639,22 @@ export default function App() {
               type="button"
               variant="ghost"
               onClick={exportMap}
-              className="h-8 rounded-full px-3 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+              className="h-8 rounded-full px-3 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-100 cursor-pointer"
             >
               Export JSON
             </Button>
+            <div className="rounded-full flex items-center px-2 text-slate-300 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
+              <span className="text-[11px] text-slate-400">
+                {Math.round(mapStageScale * 100)}%
+              </span>
+              <Button
+                type="button"
+                variant="ghost" 
+                onClick={resetMapView}
+                className="h-8 px-3 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
+                Reset view Map
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -659,7 +671,7 @@ export default function App() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="Upload tileset"
-            className="ml-auto h-8 w-8 flex shrink-0 rounded-full border-slate-700 bg-black text-slate-200 hover:bg-slate-800"
+            className="ml-auto h-8 w-8 flex shrink-0 rounded-full border-slate-700 bg-black text-slate-200 hover:bg-slate-800 cursor-pointer"
           >
             <Plus size={16} strokeWidth={2} />
           </Button>
@@ -672,15 +684,6 @@ export default function App() {
             {tilesetImg.height}px)
           </div>
         )}
-
-        <div style={{ marginTop: 10 }}>
-          <span style={{ fontSize: 11, opacity: 0.7 }}>
-              {Math.round(paletteStageScale * 100)}%
-          </span>
-          <button onClick={resetPaletteView} >
-              Reset view Pallete
-          </button>
-        </div>
 
         {tilesetImg ? (
           <div className="overflow-hidden rounded-lg border border-slate-800 bg-black">
@@ -727,25 +730,17 @@ export default function App() {
 
         <div className="flex items-center justify-between text-[11px] text-slate-500">
           <span>{Math.round(paletteStageScale * 100)}%</span>
-          <button onClick={resetPaletteView} className="text-sky-400 hover:underline">
+          <button onClick={resetPaletteView} className="text-sky-400 hover:underline cursor-pointer">
             Reset view Pallete
           </button>
         </div>
 
+        <Button>Add layer</Button>
         <div className="mt-2 flex items-center justify-between rounded-md border border-white bg-black px-3 py-2">
           <div>
             <div className="text-xs font-medium text-slate-100">New Layer 1</div>
             <div className="text-[11px] text-slate-500">Terrain Tileset</div>
           </div>
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <span style={{ fontSize: 11, opacity: 0.7 }}>
-            {Math.round(mapStageScale * 100)}%
-          </span>
-          <button onClick={resetMapView}>
-            Reset view Map
-          </button>
         </div>
       </div>
     </div>
